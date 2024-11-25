@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Flight Routes with Interactive Dropdown</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.27/"></script>
+  <style>
+    html, body, #viewDiv {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #infoDiv {
+      position: absolute;
+      top: 10px;
+      right: 10px; /* Moves dropdown to top-right corner */
+      z-index: 99;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="infoDiv">
+    <label for="routeSelect">Select Flight Route:</label>
+    <select id="routeSelect">
+      <option value="all">Show All Routes</option>
+    </select>
+  </div>
+  <div id="viewDiv"></div>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/SceneView",
+      "esri/Graphic",
+      "esri/geometry/Polyline",
+      "esri/geometry/Point",
+      "esri/layers/GraphicsLayer",
+      "esri/geometry/geometryEngine"
+    ], function(Map, SceneView, Graphic, Polyline, Point, GraphicsLayer, geometryEngine) {
+      const map = new Map({
+        basemap: "satellite",
+        ground: "world-elevation"
+      });
+
+      const view = new SceneView({
+        container: "viewDiv",
+        map: map,
+        camera: {
+          position: {
+            latitude: 20,
+            longitude: 0,
+            z: 30000000
+          },
+          tilt: 0
+        }
+      });
+
+      const graphicsLayer = new GraphicsLayer();
+      map.add(graphicsLayer);
+
+      const colors = [
+        [255, 69, 0],   // Bright Red-Orange
+        [60, 179, 113], // Bright Sea Green
+        [65, 105, 225], // Bright Royal Blue
+        [255, 215, 0],  // Bright Yellow
+        [255, 20, 147], // Bright Pink
+        [0, 191, 255],  // Bright Sky Blue
+        [138, 43, 226], // Bright Purple
+        [255, 140, 0]   // Bright Orange
+      ];
+
+      const itinerary = [
+        { lat: 37.7749, lon: -122.4194, city: "San Francisco", date: "Oct 30" },
+        { lat: 37.5665, lon: 126.9780, city: "Seoul", date: "Nov 1" },
+        { lat: 35.6895, lon: 139.6917, city: "Tokyo", date: "Nov 7" },
+        { lat: 14.5995, lon: 120.9842, city: "Manila", date: "Nov 9" },
+        { lat: 25.276987, lon: 51.520008, city: "Doha", date: "Nov 10" },
+        { lat: 23.5880, lon: 58.3829, city: "Mascut", date: "Nov 11" },
+        { lat: 31.9539, lon: 35.9106, city: "Amman", date: "Nov 15" },
+        { lat: 25.276987, lon: 55.296249, city: "Dubai", date: "Nov 17" },
+        { lat: 37.7749, lon: -122.4194, city: "San Francisco", date: "Nov 18" }
+      ];
+
+      const routeSelect = document.getElementById("routeSelect");
+
+      itinerary.forEach((stop, index) => {
+        if (index < itinerary.length - 1) {
+          const nextStop = itinerary[index + 1];
+          const routeColor = colors[index % colors.length];
+
+          const route = new Polyline({
+            paths: [
+              [stop.lon, stop.lat],
+              [nextStop.lon, nextStop.lat]
+            ]
+          });
+
+          const densified = geometryEngine.geodesicDensify(route, 100000);
+
+          const lineGraphic = new Graphic({
+            geometry: densified,
+            symbol: {
+              type: "simple-line",
+              color: routeColor,
+              width: 4
+            },
+            attributes: {
+              routeId: `route-${index}`,
+              from: stop.city,
+              to: nextStop.city
+            }
+          });
+
+          graphicsLayer.add(lineGraphic);
+
+          const option = document.createElement("option");
+          option.value = `route-${index}`;
+          option.textContent = `${stop.city} to ${nextStop.city}`;
+          routeSelect.appendChild(option);
+        }
+
+        const point = new Point({
+          longitude: stop.lon,
+          latitude: stop.lat
+        });
+
+        const pointGraphic = new Graphic({
+          geometry: point,
+          symbol: {
+            type: "simple-marker",
+            color: "red",
+            size: 10,
+            outline: {
+              color: "white",
+              width: 1
+            }
+          },
+          popupTemplate: {
+            title: stop.city,
+            content: `Date: ${stop.date}`
+          }
+        });
+
+        graphicsLayer.add(pointGraphic);
+      });
+
+      routeSelect.addEventListener("change", () => {
+        const selectedRoute = routeSelect.value;
+
+        if (selectedRoute === "all") {
+          graphicsLayer.graphics.forEach(graphic => {
+            graphic.visible = true;
+          });
+          view.goTo(graphicsLayer.graphics, { duration: 2000 });
+        } else {
+          graphicsLayer.graphics.forEach(graphic => {
+            graphic.visible = graphic.attributes?.routeId === selectedRoute || !graphic.attributes?.routeId;
+          });
+
+          const selectedGraphic = graphicsLayer.graphics.find(graphic => graphic.attributes?.routeId === selectedRoute);
+          if (selectedGraphic) {
+            view.goTo(selectedGraphic.geometry.extent.expand(2), { duration: 2000 });
+          }
+        }
+      });
+
+      view.when(() => {
+        view.goTo(graphicsLayer.graphics, { duration: 2000 });
+      });
+    });
+  </script>
+</body>
+</html>
