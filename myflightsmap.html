@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3D Flight Routes with Interactive Dropdown</title>
+  <title>3D Flight Routes with City Labels</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css">
   <script src="https://js.arcgis.com/4.27/"></script>
   <style>
@@ -14,7 +14,7 @@
     #infoDiv {
       position: absolute;
       top: 10px;
-      right: 10px; /* Moves dropdown to top-right corner */
+      right: 10px;
       z-index: 99;
       background: white;
       padding: 10px;
@@ -39,9 +39,10 @@
       "esri/Graphic",
       "esri/geometry/Polyline",
       "esri/geometry/Point",
+      "esri/symbols/TextSymbol",
       "esri/layers/GraphicsLayer",
       "esri/geometry/geometryEngine"
-    ], function(Map, SceneView, Graphic, Polyline, Point, GraphicsLayer, geometryEngine) {
+    ], function(Map, SceneView, Graphic, Polyline, Point, TextSymbol, GraphicsLayer, geometryEngine) {
       const map = new Map({
         basemap: "satellite",
         ground: "world-elevation"
@@ -77,12 +78,12 @@
       const itinerary = [
         { lat: 37.7749, lon: -122.4194, city: "San Francisco", date: "Oct 30" },
         { lat: 37.5665, lon: 126.9780, city: "Seoul", date: "Nov 1" },
-        { lat: 35.6895, lon: 139.6917, city: "Tokyo", date: "Nov 7" },
-        { lat: 14.5995, lon: 120.9842, city: "Manila", date: "Nov 9" },
+        { lat: 35.6895, lon: 139.6917, city: "Tokyo", date: "Nov 4" },
+        { lat: 14.5995, lon: 120.9842, city: "Manila", date: "Nov 7" },
         { lat: 25.276987, lon: 51.520008, city: "Doha", date: "Nov 10" },
-        { lat: 23.5880, lon: 58.3829, city: "Mascut", date: "Nov 11" },
-        { lat: 31.9539, lon: 35.9106, city: "Amman", date: "Nov 15" },
-        { lat: 25.276987, lon: 55.296249, city: "Dubai", date: "Nov 17" },
+        { lat: 23.5880, lon: 58.3829, city: "Mascut", date: "Nov 12" },
+        { lat: 31.9539, lon: 35.9106, city: "Amman", date: "Nov 14" },
+        { lat: 25.276987, lon: 55.296249, city: "Dubai", date: "Nov 16" },
         { lat: 37.7749, lon: -122.4194, city: "San Francisco", date: "Nov 18" }
       ];
 
@@ -139,14 +140,26 @@
               color: "white",
               width: 1
             }
-          },
-          popupTemplate: {
-            title: stop.city,
-            content: `Date: ${stop.date}`
           }
         });
 
+        const labelGraphic = new Graphic({
+          geometry: point,
+          symbol: new TextSymbol({
+            text: `${stop.city}`,
+            color: "white",
+            haloColor: "black",
+            haloSize: "2px",
+            font: {
+              size: 12,
+              weight: "bold"
+            },
+            verticalAlignment: "top"
+          })
+        });
+
         graphicsLayer.add(pointGraphic);
+        graphicsLayer.add(labelGraphic);
       });
 
       routeSelect.addEventListener("change", () => {
