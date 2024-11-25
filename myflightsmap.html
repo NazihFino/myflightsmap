@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3D Flight Routes with City Labels</title>
+  <title>3D Flight Routes with Labels and Dates</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css">
   <script src="https://js.arcgis.com/4.27/"></script>
   <style>
@@ -140,13 +140,17 @@
               color: "white",
               width: 1
             }
+          },
+          popupTemplate: {
+            title: stop.city,
+            content: `Date: ${stop.date}`
           }
         });
 
         const labelGraphic = new Graphic({
           geometry: point,
           symbol: new TextSymbol({
-            text: `${stop.city}`,
+            text: `${stop.city}\n(${stop.date})`,
             color: "white",
             haloColor: "black",
             haloSize: "2px",
